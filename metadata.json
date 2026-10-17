@@ -1,0 +1,8 @@
+{
+  "name": "Cóc Kiện Trời - Vượt Thiên Đình",
+  "description": "Trò chơi platformer parkour 2D thẳng đứng theo truyện cổ tích Việt Nam Cóc Kiện Trời. Điều khiển chú cóc dũng cảm nhảy chính xác qua các tầng trời để tới Thiên Đình gõ trống kêu mưa cứu muôn loài.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
