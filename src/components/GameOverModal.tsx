@@ -1,12 +1,13 @@
 import React from 'react';
 import { GameStats } from '../types/game';
-import { RotateCcw, Flame, Trophy, Clock, Award } from 'lucide-react';
+import { RotateCcw, Flame, Trophy, Clock, Award, Share2 } from 'lucide-react';
 
 interface GameOverModalProps {
   isOpen: boolean;
   stats: GameStats;
   onRestart: () => void;
   onOpenLeaderboard: () => void;
+  onOpenShare?: () => void;
 }
 
 export const GameOverModal: React.FC<GameOverModalProps> = ({
@@ -14,6 +15,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   stats,
   onRestart,
   onOpenLeaderboard,
+  onOpenShare,
 }) => {
   if (!isOpen) return null;
 
@@ -75,15 +77,25 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         <div className="flex flex-col gap-2">
           <button
             onClick={onRestart}
-            className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-md"
+            className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-md cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Tiếp Tục Leo Ngay</span>
           </button>
 
+          {onOpenShare && (
+            <button
+              onClick={onOpenShare}
+              className="w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors border border-amber-500/40 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4 text-amber-400" />
+              <span>Chia Sẻ Kỷ Lục Với Bạn Bè</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenLeaderboard}
-            className="w-full py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors border border-amber-900/40"
+            className="w-full py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors border border-amber-900/40 cursor-pointer"
           >
             <Award className="w-4 h-4" />
             <span>Xem Bảng Thành Tích Cá Nhân</span>

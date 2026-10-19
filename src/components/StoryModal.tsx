@@ -65,11 +65,11 @@ export const StoryModal: React.FC<StoryModalProps> = ({ isOpen, onClose }) => {
         <div className="mt-6 pt-5 border-t border-amber-900/40 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3 rounded-lg bg-stone-950/60 border border-amber-900/30">
             <div className="flex items-center gap-1.5 text-amber-400 font-semibold text-xs mb-1">
-              <span className="text-sm">💨</span>
-              <span>Đạp Gió Lướt Mây</span>
+              <span className="text-sm">🦘</span>
+              <span>Búng Nhảy & Đổi Hướng</span>
             </div>
             <p className="text-xs text-stone-400">
-              Bấm Shift / J hoặc phím Nhảy trên không để lướt mây chuyển làn tức thì. <strong>Hồi chiêu ~30s</strong> (hiển thị thời gian chờ góc trái trên; ăn sương giúp hồi nhanh).
+              Phím Space / W / Mũi tên Lên để nhảy; phím A / D hoặc Mũi tên Trái / Phải để lượn hướng chính xác vào bệ đứng.
             </p>
           </div>
 
@@ -86,10 +86,10 @@ export const StoryModal: React.FC<StoryModalProps> = ({ isOpen, onClose }) => {
           <div className="p-3 rounded-lg bg-stone-950/60 border border-amber-900/30">
             <div className="flex items-center gap-1.5 text-amber-400 font-semibold text-xs mb-1">
               <CloudRain className="w-4 h-4 text-sky-400" />
-              <span>Nghiến Răng Gọi Mưa</span>
+              <span>Gom Sương Mở Khóa</span>
             </div>
             <p className="text-xs text-stone-400">
-              Bấm phím R hoặc nút Sấm Giông để cưỡi vòi rồng nước bay thẳng lên trời. <strong>Hồi chiêu ~30s</strong> (đếm lùi góc trái trên).
+              Thu thập các giọt sương lành và sen vàng trên đường leo để tích lũy mở khóa trang phục thần thoại và kết nạp bạn đồng hành.
             </p>
           </div>
         </div>

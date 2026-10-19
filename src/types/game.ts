@@ -83,19 +83,11 @@ export interface Player {
   width: number;
   height: number;
   isGrounded: boolean;
-  // Air Dash (Đạp Gió Lướt Mây) Skill - Recharges every 30 raindrop pickups
-  canAirDash: boolean;
-  airDashCount: number; // remaining dashes
-  airDashTimer: number; // active dash frames
-  airDashDropsCollected: number; // raindrops collected toward recharge (0 to airDashDropsNeeded)
-  airDashDropsNeeded: number; // 30 raindrops base (reduced by companion/skin)
-  airDashCooldown: number; // legacy backwards compat
-  maxAirDashCooldown: number;
   squashX: number; // 1.0 is normal, >1 is stretch, <1 is squash
   squashY: number;
   rotation: number;
   facing: -1 | 1;
-  state: 'idle' | 'charging' | 'jumping' | 'falling' | 'air_dash' | 'celebrating';
+  state: 'idle' | 'charging' | 'jumping' | 'falling' | 'celebrating';
   chargeTime: number; // 0 to 1
   canDoubleJump: boolean;
   lastPlatformId: string | null;
@@ -109,18 +101,7 @@ export interface GameStats {
   waterDrops: number;
   totalJumps: number;
   perfectLandings: number;
-  teethGrinds: number; // Rain summon count
-  airDashes: number; // Count of Air Dashes executed
   highScore: number;
-  // Raindrop-based Skill Recharge (~30 raindrops)
-  airDashDropsCollected: number;
-  airDashDropsNeeded: number;
-  rainDropsCollected: number;
-  rainDropsNeeded: number;
-  airDashCooldown?: number; // legacy in seconds
-  maxAirDashCooldown?: number;
-  rainCooldown?: number;
-  maxRainCooldown?: number;
 }
 
 export interface RunRecord {

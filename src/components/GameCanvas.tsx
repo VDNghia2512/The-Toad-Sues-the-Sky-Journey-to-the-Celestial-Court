@@ -4,6 +4,7 @@ import { GAME_CONSTANTS, REALMS, SKINS } from '../game/constants';
 import { LevelGenerator } from '../game/levelGenerator';
 import { PhysicsEngine } from '../game/physics';
 import { soundManager } from '../audio/soundManager';
+import thienDinhBg from '../assets/images/thien_dinh_sky_bg_1792210834302.jpg';
 
 interface GameCanvasProps {
   onStatsUpdate: (stats: GameStats) => void;
@@ -12,8 +13,6 @@ interface GameCanvasProps {
   activeSkinId: string;
   companions: Companion[];
   isPaused: boolean;
-  rainSummonActive: boolean;
-  onRainSummonEnd: () => void;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -23,8 +22,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   activeSkinId,
   companions,
   isPaused,
-  rainSummonActive,
-  onRainSummonEnd,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -37,11 +34,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     width: 44,
     height: 38,
     isGrounded: true,
-    canAirDash: true,
-    airDashCount: 1,
-    airDashTimer: 0,
-    airDashCooldown: 0,
-    maxAirDashCooldown: 30,
     squashX: 1,
     squashY: 1,
     rotation: 0,
@@ -62,13 +54,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   // Input states (Keyboard only, mouse slingshot removed)
   const keysRef = useRef({ left: false, right: false, jump: false, down: false });
 
-  const rainTimerRef = useRef<number>(0);
-  const rainCooldownRef = useRef<number>(0);
   const rainOrbsRef = useRef<number>(0);
   const totalJumpsRef = useRef<number>(0);
   const perfectLandingsRef = useRef<number>(0);
-  const teethGrindsRef = useRef<number>(0);
-  const airDashesRef = useRef<number>(0);
   const startTimeRef = useRef<number>(Date.now());
   const reachedHeavenRef = useRef<boolean>(false);
 
@@ -77,7 +65,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   useEffect(() => {
     const img = new Image();
-    img.src = '/src/assets/images/thien_dinh_sky_bg_1792210834302.jpg';
+    img.src = thienDinhBg;
     img.onload = () => {
       bgImgRef.current = img;
     };
@@ -87,26 +75,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     playerRef.current.skinId = (activeSkinId as any) || 'classic';
   }, [activeSkinId]);
 
-  useEffect(() => {
-    if (rainSummonActive) {
-      teethGrindsRef.current++;
-      rainTimerRef.current = 180;
-      const hasRainSpirit = activeSkinId === 'rain_spirit';
-      rainCooldownRef.current = hasRainSpirit ? 20 : GAME_CONSTANTS.RAIN_SUMMON_COOLDOWN;
-      soundManager.playRainSummon();
-      playerRef.current.vy = -12;
-      playerRef.current.isGrounded = false;
-      playerRef.current.airDashTimer = 0;
-    }
-  }, [rainSummonActive, activeSkinId]);
-
   const resetGame = useCallback(() => {
     const levelGen = levelGenRef.current;
     const initialPlatforms = levelGen.generateInitialChunk(-3000);
     platformsRef.current = initialPlatforms;
     particlesRef.current = [];
-
-    const hasCrab = companions.find(c => c.id === 'crab')?.active;
 
     playerRef.current = {
       x: GAME_CONSTANTS.WORLD_WIDTH / 2,
@@ -116,11 +89,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       width: 44,
       height: 38,
       isGrounded: true,
-      canAirDash: true,
-      airDashCount: hasCrab ? 2 : 1,
-      airDashTimer: 0,
-      airDashCooldown: 0,
-      maxAirDashCooldown: 30,
       squashX: 1,
       squashY: 1,
       rotation: 0,
@@ -134,14 +102,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     cameraYRef.current = 0;
     maxClimbedYRef.current = 0;
-    rainTimerRef.current = 0;
-    rainCooldownRef.current = 0;
     totalJumpsRef.current = 0;
     perfectLandingsRef.current = 0;
-    airDashesRef.current = 0;
     startTimeRef.current = Date.now();
     reachedHeavenRef.current = false;
-  }, [activeSkinId, companions]);
+  }, [activeSkinId]);
 
   useEffect(() => {
     resetGame();
@@ -152,7 +117,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     player.vx = forceX;
     player.vy = forceY;
     player.isGrounded = false;
-    player.airDashTimer = 0;
     player.squashX = 0.65;
     player.squashY = 1.45;
     totalJumpsRef.current++;
@@ -187,45 +151,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         keysRef.current.right = true;
       }
 
-      // Jump / Air Dash keys: Space, ArrowUp, KeyW, ShiftLeft, KeyJ
-      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyJ') {
-        // Dedicated Dash key
-        const player = playerRef.current;
-        if (!player.isGrounded) {
-          const dashed = PhysicsEngine.tryAirDash(
-            player,
-            particlesRef.current,
-            companions,
-            keysRef.current.left ? -1 : keysRef.current.right ? 1 : player.facing
-          );
-          if (dashed) airDashesRef.current++;
-        }
-      }
-
       if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
         keysRef.current.jump = true;
 
         const player = playerRef.current;
         if (player.isGrounded) {
           // Jump from platform
-          performJump(player.vx * 0.8, GAME_CONSTANTS.MAX_JUMP_FORCE_Y);
-        } else {
-          // Mid-air: Trigger Air Dash (Đạp Gió Lướt Mây)!
-          const dashed = PhysicsEngine.tryAirDash(
-            player,
-            particlesRef.current,
-            companions,
-            keysRef.current.left ? -1 : keysRef.current.right ? 1 : player.facing
-          );
-
-          if (dashed) {
-            airDashesRef.current++;
-          } else if (player.canDoubleJump) {
-            // Secondary double jump hop if dashes used
-            player.canDoubleJump = false;
-            performJump(player.vx * 0.9, GAME_CONSTANTS.MIN_JUMP_FORCE_Y * 1.3);
-            soundManager.playCroak();
-          }
+          const hasWarrior = activeSkinId === 'warrior';
+          const jumpForce = GAME_CONSTANTS.MAX_JUMP_FORCE_Y * (hasWarrior ? 1.08 : 1.0);
+          performJump(player.vx * 0.8, jumpForce);
+        } else if (player.canDoubleJump) {
+          // Mid-air double jump hop
+          player.canDoubleJump = false;
+          performJump(player.vx * 0.9, GAME_CONSTANTS.MIN_JUMP_FORCE_Y * 1.35);
+          soundManager.playCroak();
         }
       }
 
@@ -255,7 +194,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isPaused, performJump, companions]);
+  }, [isPaused, performJump, activeSkinId]);
 
   // Main 60FPS Game Loop
   useEffect(() => {
@@ -276,31 +215,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const platforms = platformsRef.current;
         const particles = particlesRef.current;
 
-        // 1. Rain torrent powerup
-        if (rainTimerRef.current > 0) {
-          rainTimerRef.current--;
-          player.vy = Math.min(player.vy, -8.5);
-          player.squashY = 1.3;
-
-          particles.push({
-            x: player.x + (Math.random() - 0.5) * 30,
-            y: player.y + 25,
-            vx: (Math.random() - 0.5) * 3,
-            vy: 6 + Math.random() * 4,
-            color: '#38bdf8',
-            size: 4 + Math.random() * 2,
-            alpha: 0.9,
-            life: 0,
-            maxLife: 25,
-            shape: 'drop',
-          });
-
-          if (rainTimerRef.current === 0) {
-            onRainSummonEnd();
-          }
-        }
-
-        // 2. Physics update
+        // 1. Physics update
         const physicsResult = PhysicsEngine.updatePlayer(
           player,
           platforms,
@@ -319,25 +234,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           onReachHeaven();
         }
 
-        // 3. Collectibles check & Cooldown recovery
+        // 2. Collectibles check
         const dropsEarned = PhysicsEngine.checkCollectibles(player, platforms, particles, companions);
         if (dropsEarned > 0) {
           rainOrbsRef.current += dropsEarned;
-          // Water drops also speed up rain summon cooldown
-          if (rainCooldownRef.current > 0) {
-            rainCooldownRef.current = Math.max(0, rainCooldownRef.current - dropsEarned * 0.6);
-          }
         }
 
-        // Tick rain cooldown timer (~30s base)
-        if (rainCooldownRef.current > 0) {
-          rainCooldownRef.current = Math.max(0, rainCooldownRef.current - dt / 60);
-        }
-
-        // 4. Update particles
+        // 3. Update particles
         PhysicsEngine.updateParticles(particles);
 
-        // 5. Camera follow
+        // 4. Camera follow
         const targetCamY = player.y - GAME_CONSTANTS.VIEWPORT_HEIGHT * 0.6;
         if (targetCamY < cameraYRef.current) {
           cameraYRef.current += (targetCamY - cameraYRef.current) * 0.12;
@@ -352,13 +258,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const maxAltitude = Math.floor(-maxClimbedYRef.current * GAME_CONSTANTS.ALTITUDE_SCALE);
         const timeElapsed = Math.max(0, (Date.now() - startTimeRef.current) / 1000);
 
-        const hasWarrior = activeSkinId === 'warrior';
-        const hasCrab = companions.find(c => c.id === 'crab')?.active;
-        let maxDashCd = GAME_CONSTANTS.AIR_DASH_COOLDOWN;
-        if (hasWarrior) maxDashCd -= 6;
-        if (hasCrab) maxDashCd -= 6;
-        const maxRainCd = activeSkinId === 'rain_spirit' ? 20 : GAME_CONSTANTS.RAIN_SUMMON_COOLDOWN;
-
         onStatsUpdate({
           altitude: currentAltitude,
           maxAltitude,
@@ -366,16 +265,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           waterDrops: rainOrbsRef.current,
           totalJumps: totalJumpsRef.current,
           perfectLandings: perfectLandingsRef.current,
-          teethGrinds: teethGrindsRef.current,
-          airDashes: airDashesRef.current,
           highScore: maxAltitude,
-          airDashCooldown: player.airDashCooldown || 0,
-          maxAirDashCooldown: player.maxAirDashCooldown || maxDashCd,
-          rainCooldown: rainCooldownRef.current || 0,
-          maxRainCooldown: maxRainCd,
         });
 
-        // 6. Death threshold check
+        // 5. Death threshold check
         const bottomDeathThreshold = cameraYRef.current + GAME_CONSTANTS.VIEWPORT_HEIGHT + 150;
         if (player.y > bottomDeathThreshold && player.y > 0) {
           const tigerCompanion = companions.find(c => c.id === 'tiger');
@@ -393,18 +286,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               waterDrops: rainOrbsRef.current,
               totalJumps: totalJumpsRef.current,
               perfectLandings: perfectLandingsRef.current,
-              teethGrinds: teethGrindsRef.current,
-              airDashes: airDashesRef.current,
               highScore: maxAltitude,
-              airDashCooldown: player.airDashCooldown || 0,
-              maxAirDashCooldown: player.maxAirDashCooldown || 30,
-              rainCooldown: rainCooldownRef.current || 0,
-              maxRainCooldown: activeSkinId === 'rain_spirit' ? 20 : GAME_CONSTANTS.RAIN_SUMMON_COOLDOWN,
             });
           }
         }
 
-        // 7. Dynamic Level generation
+        // 6. Dynamic Level generation
         if (player.y - 2500 < levelGenRef.current['highestGeneratedY']) {
           levelGenRef.current.generateMore(player.y - 3000, platforms);
         }
@@ -439,13 +326,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // 4. Draw Particles
       drawParticles(ctx, particlesRef.current);
 
-      // 5. Draw Player Toad & Air Dash visuals
+      // 5. Draw Player Toad
       drawToadPlayer(ctx, playerRef.current, activeSkinId);
-
-      // 6. Rain VFX Overlay
-      if (rainTimerRef.current > 0) {
-        drawRainTorrent(ctx, cameraYRef.current);
-      }
 
       ctx.restore();
 
@@ -454,7 +336,46 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     animationFrameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused, activeSkinId, companions, onGameOver, onReachHeaven, onStatsUpdate, onRainSummonEnd]);
+  }, [isPaused, activeSkinId, companions, onGameOver, onReachHeaven, onStatsUpdate]);
+
+  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (isPaused) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickRatio = (e.clientX - rect.left) / rect.width;
+    const clickX = clickRatio * GAME_CONSTANTS.WORLD_WIDTH;
+
+    const player = playerRef.current;
+    let steerForce = player.vx * 0.85;
+
+    if (clickRatio < 0.35) {
+      // Tap left area
+      steerForce = -5;
+      player.facing = -1;
+    } else if (clickRatio > 0.65) {
+      // Tap right area
+      steerForce = 5;
+      player.facing = 1;
+    } else {
+      // Tap center area: steer toward pointer position
+      const dx = clickX - player.x;
+      if (Math.abs(dx) > 25) {
+        steerForce = Math.sign(dx) * 4.2;
+        player.facing = Math.sign(dx) as -1 | 1;
+      }
+    }
+
+    if (player.isGrounded) {
+      const hasWarrior = activeSkinId === 'warrior';
+      const jumpForce = GAME_CONSTANTS.MAX_JUMP_FORCE_Y * (hasWarrior ? 1.08 : 1.0);
+      performJump(steerForce, jumpForce);
+    } else if (player.canDoubleJump) {
+      player.canDoubleJump = false;
+      performJump(steerForce, GAME_CONSTANTS.MIN_JUMP_FORCE_Y * 1.35);
+      soundManager.playCroak();
+    }
+  };
 
   return (
     <div className="relative w-full h-full flex items-center justify-center select-none overflow-hidden touch-none">
@@ -462,9 +383,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ref={canvasRef}
         width={GAME_CONSTANTS.WORLD_WIDTH}
         height={GAME_CONSTANTS.VIEWPORT_HEIGHT}
-        onMouseDown={(e) => e.preventDefault()}
-        onPointerDown={(e) => e.preventDefault()}
-        className="max-h-[92vh] max-w-[98vw] aspect-[600/850] object-contain shadow-2xl rounded-2xl border-4 border-amber-900/60 bg-stone-900 cursor-default select-none touch-none"
+        onPointerDown={handleCanvasPointerDown}
+        className="max-h-[92vh] max-w-[98vw] aspect-[600/850] object-contain shadow-2xl rounded-2xl border-4 border-amber-900/60 bg-stone-900 cursor-pointer select-none touch-none active:brightness-105"
       />
     </div>
   );
@@ -791,22 +711,6 @@ function drawToadPlayer(ctx: CanvasRenderingContext2D, player: Player, skinId: s
   ctx.scale(player.facing * player.squashX, player.squashY);
 
   const skin = SKINS.find(s => s.id === skinId) || SKINS[0];
-
-  // If Air Dashing, draw golden wind aura and swirling cloud underneath!
-  if (player.airDashTimer > 0) {
-    ctx.save();
-    ctx.fillStyle = 'rgba(251, 191, 36, 0.45)';
-    ctx.beginPath();
-    ctx.ellipse(-6, 0, 26, 18, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Swirling cloud under feet
-    ctx.fillStyle = '#fef08a';
-    ctx.beginPath();
-    ctx.ellipse(-10, 14, 16, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
 
   // 1. Toad Back / Body
   ctx.fillStyle = skin.bodyColor;

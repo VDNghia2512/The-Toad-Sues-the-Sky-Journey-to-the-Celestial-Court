@@ -9,82 +9,6 @@ export interface TrajectoryPoint {
 
 export class PhysicsEngine {
   /**
-   * Try activating the Toad's Air Dash (Đạp Gió Lướt Mây) Skill
-   */
-  public static tryAirDash(
-    player: Player,
-    particles: Particle[],
-    companions: Companion[],
-    preferredDirectionX?: number
-  ): boolean {
-    const hasWarriorSkin = player.skinId === 'warrior';
-    const hasCrabCompanion = companions.find(c => c.id === 'crab')?.active;
-
-    let dropsNeeded = GAME_CONSTANTS.AIR_DASH_DROPS_NEEDED; // 30 raindrops base
-    if (hasCrabCompanion) dropsNeeded = 20; // 20 drops with Crab companion
-    if (hasWarriorSkin) dropsNeeded = 22; // 22 drops with Warrior skin
-    player.airDashDropsNeeded = dropsNeeded;
-
-    // Check if skill is on cooldown (needs 30 raindrop pickups) or player is grounded/already dashing
-    if (
-      player.isGrounded ||
-      player.airDashTimer > 0 ||
-      (player.airDashCount <= 0 && player.airDashDropsCollected < player.airDashDropsNeeded)
-    ) {
-      return false;
-    }
-
-    const dashSpeed = hasWarriorSkin
-      ? GAME_CONSTANTS.AIR_DASH_SPEED * 1.3
-      : GAME_CONSTANTS.AIR_DASH_SPEED;
-
-    let dirX = preferredDirectionX !== undefined && preferredDirectionX !== 0
-      ? Math.sign(preferredDirectionX)
-      : player.facing;
-
-    if (dirX === 0) dirX = 1;
-
-    // Apply rapid wind burst
-    player.vx = dirX * dashSpeed;
-    player.vy = GAME_CONSTANTS.AIR_DASH_LIFT;
-    player.airDashTimer = GAME_CONSTANTS.AIR_DASH_DURATION;
-    player.airDashCount--;
-    player.facing = dirX as -1 | 1;
-    player.state = 'air_dash';
-    player.squashX = 1.45;
-    player.squashY = 0.65;
-
-    // When dash charges are used, start raindrop collection count (0 to 30)
-    if (player.airDashCount <= 0) {
-      player.airDashDropsCollected = 0;
-      player.canAirDash = false;
-      player.airDashCooldown = 1; // legacy flag
-    }
-
-    soundManager.playAirDash();
-
-    // Auspicious cloud poof & wind sparkles underfoot
-    const colors = ['#fde047', '#38bdf8', '#f472b6', '#4ade80', '#ffffff'];
-    for (let i = 0; i < 15; i++) {
-      const angle = (Math.PI * 2 * i) / 15;
-      particles.push({
-        x: player.x - dirX * 12,
-        y: player.y + 14,
-        vx: -dirX * (2 + Math.random() * 4) + Math.cos(angle) * 2,
-        vy: (Math.random() - 0.5) * 3 + 1,
-        color: colors[i % colors.length],
-        size: 3.5 + Math.random() * 3,
-        alpha: 1,
-        life: 0,
-        maxLife: 24,
-        shape: 'cloud',
-      });
-    }
-
-    return true;
-  }
-
-  /**
    * Update toad physics, collisions, squashing, and movement
    */
   public static updatePlayer(
@@ -93,99 +17,63 @@ export class PhysicsEngine {
     particles: Particle[],
     companions: Companion[],
     keys: { left: boolean; right: boolean; jump: boolean; down: boolean },
-    deltaTime: number = 1
-  ): { landedOn: Platform | null; triggeredRainOrb: boolean; fellPastBottom: boolean; usedDash: boolean } {
+    _deltaTime: number = 1
+  ): { landedOn: Platform | null; triggeredRainOrb: boolean; fellPastBottom: boolean } {
     let landedOn: Platform | null = null;
     let triggeredRainOrb = false;
     let fellPastBottom = false;
-    let usedDash = false;
 
     const hasBeeGlide = companions.find(c => c.id === 'bee')?.active;
     const hasCrabCompanion = companions.find(c => c.id === 'crab')?.active;
+    const hasWarriorSkin = player.skinId === 'warrior';
 
     const halfW = player.width / 2;
     const minX = halfW + 12;
     const maxX = GAME_CONSTANTS.WORLD_WIDTH - halfW - 12;
 
-    // Update Air Dash cooldown timer (~30s)
-    if (player.airDashCooldown > 0) {
-      player.airDashCooldown = Math.max(0, player.airDashCooldown - (deltaTime / 60));
-      if (player.airDashCooldown <= 0) {
-        player.canAirDash = true;
-        player.airDashCount = hasCrabCompanion ? 2 : 1;
-        soundManager.playWaterCollect();
-      }
-    }
+    // Horizontal steering
+    if (player.isGrounded) {
+      player.canDoubleJump = true;
+      const moveSpeed = 4.8 * (hasWarriorSkin ? 1.25 : 1.0);
 
-    // 1. Air Dash active phase
-    if (player.airDashTimer > 0) {
-      usedDash = true;
-      player.airDashTimer--;
-      // Slightly reduce friction during dash for crisp zip feeling
-      player.vx *= 0.95;
-      player.vy += 0.2; // very low gravity during dash
-
-      // Wind stream trail particles
-      if (Math.random() < 0.6) {
-        particles.push({
-          x: player.x - player.facing * 16,
-          y: player.y + (Math.random() - 0.5) * 10,
-          vx: -player.vx * 0.15,
-          vy: (Math.random() - 0.5) * 1.5,
-          color: Math.random() > 0.4 ? '#fde047' : '#ffffff',
-          size: 3,
-          alpha: 0.8,
-          life: 0,
-          maxLife: 16,
-          shape: 'cloud',
-        });
+      if (keys.left) {
+        player.vx = -moveSpeed;
+        player.facing = -1;
+      } else if (keys.right) {
+        player.vx = moveSpeed;
+        player.facing = 1;
+      } else {
+        const friction = hasCrabCompanion ? 0.75 : GAME_CONSTANTS.GROUND_FRICTION;
+        player.vx *= friction;
       }
     } else {
-      // 2. Normal Horizontal steering
-      if (player.isGrounded) {
-        // Reset air dash only if cooldown is complete
-        if (player.airDashCooldown <= 0) {
-          player.airDashCount = hasCrabCompanion ? 2 : 1;
-          player.canAirDash = true;
-        }
-
-        if (keys.left) {
-          player.vx = -4.8;
-          player.facing = -1;
-        } else if (keys.right) {
-          player.vx = 4.8;
-          player.facing = 1;
-        } else {
-          player.vx *= GAME_CONSTANTS.GROUND_FRICTION;
-        }
+      // In air steering
+      const maxAirSpeed = 6.5 * (hasWarriorSkin ? 1.2 : 1.0);
+      if (keys.left) {
+        player.vx = Math.max(player.vx - 0.45, -maxAirSpeed);
+        player.facing = -1;
+      } else if (keys.right) {
+        player.vx = Math.min(player.vx + 0.45, maxAirSpeed);
+        player.facing = 1;
       } else {
-        // In air steering
-        if (keys.left) {
-          player.vx = Math.max(player.vx - 0.45, -6.5);
-          player.facing = -1;
-        } else if (keys.right) {
-          player.vx = Math.min(player.vx + 0.45, 6.5);
-          player.facing = 1;
-        } else {
-          player.vx *= GAME_CONSTANTS.AIR_DRAG;
-        }
+        player.vx *= GAME_CONSTANTS.AIR_DRAG;
       }
-
-      // 3. Gravity
-      let effectiveGravity = GAME_CONSTANTS.GRAVITY;
-      if (hasBeeGlide && keys.jump && player.vy > 0) {
-        effectiveGravity *= 0.35; // Bee glide slow-fall
-      }
-      player.vy += effectiveGravity;
-      player.vy = Math.min(player.vy, GAME_CONSTANTS.TERMINAL_VELOCITY);
     }
+
+    // Gravity
+    let effectiveGravity = GAME_CONSTANTS.GRAVITY;
+    if (hasBeeGlide && keys.jump && player.vy > 0) {
+      effectiveGravity *= 0.35; // Bee glide slow-fall
+    }
+    player.vy += effectiveGravity;
+    player.vy = Math.min(player.vy, GAME_CONSTANTS.TERMINAL_VELOCITY);
 
     // Apply movement
     const prevY = player.y;
     player.x += player.vx;
     player.y += player.vy;
 
-    // 4. Side boundaries (Gentle non-stick soft bounce)
+    // Side boundaries (Gentle non-stick soft bounce)
     if (player.x <= minX) {
       player.x = minX;
       player.vx = Math.max(0, -player.vx * 0.35);
@@ -194,7 +82,7 @@ export class PhysicsEngine {
       player.vx = Math.min(0, -player.vx * 0.35);
     }
 
-    // 5. Platform Collisions (One-way top collision)
+    // Platform Collisions (One-way top collision)
     player.isGrounded = false;
 
     if (player.vy >= 0) {
@@ -211,9 +99,6 @@ export class PhysicsEngine {
             player.vy = 0;
             player.isGrounded = true;
             player.canDoubleJump = true;
-            player.airDashCount = hasCrabCompanion ? 2 : 1;
-            player.canAirDash = true;
-            player.airDashTimer = 0;
             player.lastPlatformId = plat.id;
             landedOn = plat;
 
@@ -315,7 +200,7 @@ export class PhysicsEngine {
       }
     }
 
-    // 6. Moving platforms update & carrying player
+    // Moving platforms update & carrying player
     for (const plat of platforms) {
       if (plat.type === 'moving' && plat.moveSpeed && plat.minX !== undefined && plat.maxX !== undefined) {
         plat.x += (plat.moveDirection || 1) * plat.moveSpeed;
@@ -354,38 +239,28 @@ export class PhysicsEngine {
       }
     }
 
-    // 7. Squash & stretch recovery
-    player.squashX += (1.0 - player.squashX) * 0.15;
-    player.squashY += (1.0 - player.squashY) * 0.15;
+    // Ease squash / stretch back to normal
+    player.squashX += (1 - player.squashX) * 0.15;
+    player.squashY += (1 - player.squashY) * 0.15;
 
-    if (!player.isGrounded && player.airDashTimer <= 0) {
-      const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-      if (speed > 4) {
-        player.squashY = Math.min(1.4, 1.0 + speed * 0.025);
-        player.squashX = Math.max(0.75, 1.0 - speed * 0.02);
-      }
-    }
+    // Dynamic rotation tilt based on horizontal velocity
+    const targetRot = (player.vx / 10) * 0.25;
+    player.rotation += (targetRot - player.rotation) * 0.2;
 
-    // 8. Animation state
+    // Animation state update
     if (player.isGrounded) {
       player.state = 'idle';
-      player.rotation = 0;
-    } else if (player.airDashTimer > 0) {
-      player.state = 'air_dash';
-      player.rotation = player.facing * 0.25;
-    } else if (player.vy < 0) {
+    } else if (player.vy < -2) {
       player.state = 'jumping';
-      player.rotation = (player.vx / 10) * 0.35;
     } else {
       player.state = 'falling';
-      player.rotation = (player.vx / 10) * 0.2;
     }
 
-    return { landedOn, triggeredRainOrb, fellPastBottom, usedDash };
+    return { landedOn, triggeredRainOrb, fellPastBottom };
   }
 
   /**
-   * Handle collecting items
+   * Check collectibles pickup (water drops and golden lotuses)
    */
   public static checkCollectibles(
     player: Player,
@@ -395,8 +270,9 @@ export class PhysicsEngine {
   ): number {
     let earnedDrops = 0;
     const hasBearMagnet = companions.find(c => c.id === 'bear')?.active;
-    const hasCrabCompanion = companions.find(c => c.id === 'crab')?.active;
-    const pickupRadius = hasBearMagnet ? 68 : 34;
+    const hasBeeCompanion = companions.find(c => c.id === 'bee')?.active;
+    const isRainSpirit = player.skinId === 'rain_spirit';
+    const pickupRadius = hasBearMagnet ? 72 : 36;
 
     for (const plat of platforms) {
       if (!plat.hasCollectible || plat.hasCollectible.collected) continue;
@@ -409,25 +285,21 @@ export class PhysicsEngine {
       const dy = player.y - coll.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (hasBearMagnet && dist < 120 && dist > pickupRadius) {
-        coll.x += (player.x - coll.x) * 0.12;
-        coll.y += (player.y - coll.y) * 0.12;
+      if (hasBearMagnet && dist < 130 && dist > pickupRadius) {
+        coll.x += (player.x - coll.x) * 0.15;
+        coll.y += (player.y - coll.y) * 0.15;
       }
 
       if (dist < pickupRadius) {
         coll.collected = true;
-        earnedDrops += coll.value;
-        soundManager.playWaterCollect();
 
-        // Collecting drops speeds up skill cooldowns (~30s timer)
-        if (player.airDashCooldown > 0) {
-          const reduction = coll.type === 'golden_lotus' ? 2.5 : 0.6;
-          player.airDashCooldown = Math.max(0, player.airDashCooldown - reduction);
-          if (player.airDashCooldown <= 0) {
-            player.canAirDash = true;
-            player.airDashCount = hasCrabCompanion ? 2 : 1;
-          }
-        }
+        let multiplier = 1;
+        if (coll.type === 'golden_lotus') multiplier = isRainSpirit ? 3 : 2;
+        if (hasBeeCompanion) multiplier += 1;
+
+        const gain = coll.value * multiplier;
+        earnedDrops += gain;
+        soundManager.playWaterCollect();
 
         for (let i = 0; i < 8; i++) {
           particles.push({

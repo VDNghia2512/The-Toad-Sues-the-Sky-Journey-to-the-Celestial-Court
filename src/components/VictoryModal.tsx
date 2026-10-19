@@ -1,6 +1,6 @@
 import React from 'react';
 import { GameStats } from '../types/game';
-import { Trophy, CloudRain, RotateCcw, ArrowUpRight, Clock, Award } from 'lucide-react';
+import { Trophy, CloudRain, RotateCcw, ArrowUpRight, Clock, Award, Share2 } from 'lucide-react';
 
 interface VictoryModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface VictoryModalProps {
   onContinueEndless: () => void;
   onRestart: () => void;
   onOpenLeaderboard: () => void;
+  onOpenShare?: () => void;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -18,6 +19,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onContinueEndless,
   onRestart,
   onOpenLeaderboard,
+  onOpenShare,
 }) => {
   if (!isOpen) return null;
 
@@ -89,32 +91,42 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           </div>
 
           <div className="p-2.5 rounded-xl bg-stone-950/60 border border-amber-900/40">
-            <span className="text-[11px] text-stone-400">Đạp gió lướt mây</span>
-            <div className="text-base font-bold font-mono text-emerald-300">{stats.airDashes || 0} lần</div>
+            <span className="text-[11px] text-stone-400">Tiếp đất chuẩn xác</span>
+            <div className="text-base font-bold font-mono text-emerald-300">{stats.perfectLandings} lần</div>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+          {onOpenShare && (
+            <button
+              onClick={onOpenShare}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-md cursor-pointer"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Chia Sẻ Kỷ Lục</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenLeaderboard}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-600/30 border border-amber-500 text-amber-200 font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-600/50 transition-colors"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-600/30 border border-amber-500 text-amber-200 font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-600/50 transition-colors cursor-pointer"
           >
             <Award className="w-4 h-4" />
-            <span>Xem Bảng Thành Tích</span>
+            <span>Bảng Thành Tích</span>
           </button>
 
           <button
             onClick={onContinueEndless}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-md"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-amber-900/50"
           >
             <ArrowUpRight className="w-4 h-4" />
-            <span>Leo Tiếp Vô Tận</span>
+            <span>Leo Vô Tận</span>
           </button>
 
           <button
             onClick={onRestart}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Chơi Lại</span>

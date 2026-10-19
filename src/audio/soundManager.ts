@@ -3,6 +3,8 @@
  * Pure programmatic sound design - no external audio file dependencies.
  */
 
+import { storage } from '../utils/storage';
+
 class SoundManager {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
@@ -12,11 +14,9 @@ class SoundManager {
   private bgmTimer: number | null = null;
 
   constructor() {
-    // Check saved settings
-    if (typeof window !== 'undefined') {
-      const savedMute = localStorage.getItem('coc_sound_muted');
-      this.isMuted = savedMute === 'true';
-    }
+    // Check saved settings safely
+    const savedMute = storage.getItem('coc_sound_muted');
+    this.isMuted = savedMute === 'true';
   }
 
   private initCtx(): AudioContext | null {
@@ -43,9 +43,7 @@ class SoundManager {
 
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('coc_sound_muted', String(this.isMuted));
-    }
+    storage.setItem('coc_sound_muted', String(this.isMuted));
     if (this.ctx && this.sfxGain && this.bgmGain) {
       const now = this.ctx.currentTime;
       this.sfxGain.gain.setValueAtTime(this.isMuted ? 0 : 0.7, now);
