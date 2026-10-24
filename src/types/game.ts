@@ -19,6 +19,8 @@ export interface Platform {
   // State for interactive platforms
   state?: 'idle' | 'triggered' | 'breaking' | 'broken';
   breakTimer?: number;
+  regenTimer?: number;
+  maxRegenTimer?: number;
   moveSpeed?: number;
   moveDirection?: number;
   minX?: number;

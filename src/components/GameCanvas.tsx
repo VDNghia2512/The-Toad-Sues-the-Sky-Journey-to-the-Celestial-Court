@@ -495,6 +495,52 @@ function drawPlatform(ctx: CanvasRenderingContext2D, plat: Platform) {
   }
 
   if (plat.state === 'broken') {
+    if (plat.type === 'cracked' && plat.regenTimer !== undefined && plat.maxRegenTimer) {
+      const progress = Math.max(0, Math.min(1, 1 - plat.regenTimer / plat.maxRegenTimer));
+
+      // Ghostly reconstruction dashed contour
+      ctx.strokeStyle = `rgba(217, 119, 6, ${0.25 + progress * 0.5})`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(plat.x, plat.y, plat.width, plat.height);
+      ctx.setLineDash([]);
+
+      // Subtle translucent fill as it reassembles
+      if (progress > 0.35) {
+        const fillAlpha = (progress - 0.35) * 0.45;
+        ctx.fillStyle = `rgba(120, 53, 15, ${fillAlpha})`;
+        ctx.beginPath();
+        ctx.roundRect(plat.x, plat.y, plat.width, plat.height, 4);
+        ctx.fill();
+      }
+
+      // Compact progress bar showing recovery
+      const barW = Math.min(plat.width - 16, 44);
+      const barH = 4;
+      const barX = plat.x + (plat.width - barW) / 2;
+      const barY = plat.y + (plat.height - barH) / 2;
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, barW, barH, 2);
+      ctx.fill();
+
+      // Filled gradient bar (amber -> emerald green)
+      const grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+      grad.addColorStop(0, '#f59e0b');
+      grad.addColorStop(1, '#10b981');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, barW * progress, barH, 2);
+      ctx.fill();
+
+      // Floating status indicator
+      ctx.fillStyle = 'rgba(253, 224, 71, 0.85)';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⏳ Hồi phục...', plat.x + plat.width / 2, plat.y - 4);
+    }
+
     ctx.restore();
     return;
   }
@@ -546,13 +592,20 @@ function drawPlatform(ctx: CanvasRenderingContext2D, plat: Platform) {
     ctx.arc(plat.x + 10, plat.y + 3, 4, 0, Math.PI * 2);
     ctx.fill();
   } else if (plat.type === 'cracked') {
-    ctx.fillStyle = plat.state === 'breaking' ? '#b45309' : '#78350f';
+    const isBreaking = plat.state === 'breaking';
+    const shakeOffsetX = isBreaking ? (Math.random() - 0.5) * 2 : 0;
+    const shakeOffsetY = isBreaking ? (Math.random() - 0.5) * 1.5 : 0;
+
+    ctx.save();
+    ctx.translate(shakeOffsetX, shakeOffsetY);
+
+    ctx.fillStyle = isBreaking ? '#b45309' : '#78350f';
     ctx.beginPath();
     ctx.roundRect(plat.x, plat.y, plat.width, plat.height, 4);
     ctx.fill();
 
     ctx.strokeStyle = '#451a03';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = isBreaking ? 2.5 : 2;
     ctx.beginPath();
     ctx.moveTo(plat.x + 10, plat.y + 2);
     ctx.lineTo(plat.x + 30, plat.y + 12);
@@ -560,10 +613,17 @@ function drawPlatform(ctx: CanvasRenderingContext2D, plat: Platform) {
     ctx.lineTo(plat.x + 80, plat.y + 16);
     ctx.stroke();
 
-    if (plat.state === 'breaking') {
+    if (isBreaking) {
       ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
       ctx.strokeRect(plat.x - 1, plat.y - 1, plat.width + 2, plat.height + 2);
+
+      ctx.fillStyle = '#f87171';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚠️ Nứt vỡ!', plat.x + plat.width / 2, plat.y - 4);
     }
+    ctx.restore();
   } else if (plat.type === 'thunder_drum') {
     ctx.fillStyle = '#d97706';
     ctx.beginPath();

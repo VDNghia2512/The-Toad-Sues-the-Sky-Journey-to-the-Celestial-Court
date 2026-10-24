@@ -243,6 +243,28 @@ class SoundManager {
     osc.stop(now + 0.16);
   }
 
+  public playPlatformRegen() {
+    if (this.isMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx || !this.sfxGain) return;
+
+    const now = ctx.currentTime;
+    // Ascending warm wooden / magical chime as cracked platform heals
+    const notes = [293.66, 369.99, 440.0, 587.33]; // D4, F#4, A4, D5 (Pentatonic rise)
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+      gain.gain.setValueAtTime(0.18, now + idx * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.22);
+      osc.connect(gain);
+      gain.connect(this.sfxGain!);
+      osc.start(now + idx * 0.04);
+      osc.stop(now + idx * 0.04 + 0.24);
+    });
+  }
+
   public playAirDash() {
     if (this.isMuted) return;
     const ctx = this.initCtx();

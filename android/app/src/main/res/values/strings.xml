@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cóc Kiện Trời</string>
+    <string name="title_activity_main">Cóc Kiện Trời</string>
+    <string name="package_name">com.cockientroi.game</string>
+    <string name="custom_url_scheme">com.cockientroi.game</string>
+</resources>

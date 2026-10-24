@@ -9,11 +9,13 @@ import { VictoryModal } from './components/VictoryModal';
 import { GameOverModal } from './components/GameOverModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { ShareModal } from './components/ShareModal';
+import { AndroidInstallModal } from './components/AndroidInstallModal';
 import { GameStats, Skin, Companion, RunRecord, Achievement } from './types/game';
 import { COMPANIONS, SKINS, DEFAULT_ACHIEVEMENTS } from './game/constants';
 import { soundManager } from './audio/soundManager';
 import { storage } from './utils/storage';
 import { Navigation } from 'lucide-react';
+import { App as CapApp } from '@capacitor/app';
 
 export default function App() {
   const [gameState, setGameState] = useState<'PLAYING' | 'VICTORY' | 'GAME_OVER'>('PLAYING');
@@ -52,6 +54,7 @@ export default function App() {
   const [isCompanionsOpen, setIsCompanionsOpen] = useState<boolean>(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
+  const [isAndroidInstallOpen, setIsAndroidInstallOpen] = useState<boolean>(false);
   const [showGuide, setShowGuide] = useState<boolean>(true);
 
   // Load persistence
@@ -104,6 +107,53 @@ export default function App() {
       // fallback
     }
   }, []);
+
+  // Native Android hardware Back button handler (when packaged as APK)
+  useEffect(() => {
+    let listenerHandle: { remove: () => void } | null = null;
+    CapApp.addListener('backButton', ({ canGoBack }) => {
+      if (isAndroidInstallOpen) {
+        setIsAndroidInstallOpen(false);
+        return;
+      }
+      if (isStoryOpen) {
+        setIsStoryOpen(false);
+        return;
+      }
+      if (isSkinsOpen) {
+        setIsSkinsOpen(false);
+        return;
+      }
+      if (isCompanionsOpen) {
+        setIsCompanionsOpen(false);
+        return;
+      }
+      if (isLeaderboardOpen) {
+        setIsLeaderboardOpen(false);
+        return;
+      }
+      if (isShareOpen) {
+        setIsShareOpen(false);
+        return;
+      }
+
+      if (!canGoBack) {
+        CapApp.exitApp();
+      } else {
+        window.history.back();
+      }
+    }).then(handle => {
+      listenerHandle = handle;
+    }).catch(() => {
+      // Fallback in non-native environments
+    });
+
+    return () => {
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
+    };
+  }, [isAndroidInstallOpen, isStoryOpen, isSkinsOpen, isCompanionsOpen, isLeaderboardOpen, isShareOpen]);
 
   // Update rain charge as drops or jumps accumulate
   const prevDropsRef = useRef(0);
@@ -317,6 +367,7 @@ export default function App() {
         onOpenCompanions={() => setIsCompanionsOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         onOpenShare={() => setIsShareOpen(true)}
+        onOpenAndroidInstall={() => setIsAndroidInstallOpen(true)}
         onRestart={handleRestart}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
@@ -431,6 +482,11 @@ export default function App() {
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
         altitude={stats.maxAltitude}
+      />
+
+      <AndroidInstallModal
+        isOpen={isAndroidInstallOpen}
+        onClose={() => setIsAndroidInstallOpen(false)}
       />
     </div>
   );

@@ -99,11 +99,24 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           Gửi đường link này cho bạn bè để mở chơi ngay trên mọi thiết bị (Điện thoại, Máy tính, Máy tính bảng) mà không cần cài đặt!
         </p>
 
+        {/* Notice on AI Studio Share Activation */}
+        <div className="mb-4 p-3 rounded-xl bg-amber-950/50 border border-amber-600/40 text-[11px] text-amber-200/90 leading-relaxed">
+          <div className="font-bold text-amber-300 flex items-center gap-1.5 mb-1">
+            <span>📢 Cách để link không bị lỗi khi gửi cho bạn bè:</span>
+          </div>
+          <p>
+            Nhìn lên <strong>thanh công cụ trên cùng của Google AI Studio</strong> (góc trên bên phải), hãy bấm nút <strong>"Share" (Chia sẻ)</strong> ➔ chọn <strong>Public</strong> để kích hoạt liên kết công khai. Sau khi bấm, bất kỳ ai cũng có thể vào chơi ngay lập tức mà không bị lỗi 404!
+          </p>
+        </div>
+
         {/* Copy Link Input Bar */}
         <div className="mb-4">
-          <label className="text-[11px] font-semibold text-amber-400/90 mb-1.5 flex items-center gap-1">
-            <Globe className="w-3.5 h-3.5" />
-            <span>Liên kết chơi game trực tiếp:</span>
+          <label className="text-[11px] font-semibold text-amber-400/90 mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5" />
+              <span>Link game công khai:</span>
+            </span>
+            <span className="text-[10px] text-emerald-400 font-normal">Đã tích hợp PWA</span>
           </label>
           <div className="flex items-center gap-2">
             <input

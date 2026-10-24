@@ -1,7 +1,7 @@
 import React from 'react';
 import { GameStats, GameRealm } from '../types/game';
 import { REALMS } from '../game/constants';
-import { Volume2, VolumeX, BookOpen, Shirt, Users, RotateCcw, Trophy, Clock, Share2 } from 'lucide-react';
+import { Volume2, VolumeX, BookOpen, Shirt, Users, RotateCcw, Trophy, Clock, Share2, Smartphone } from 'lucide-react';
 
 interface HUDProps {
   stats: GameStats;
@@ -10,6 +10,7 @@ interface HUDProps {
   onOpenCompanions: () => void;
   onOpenLeaderboard: () => void;
   onOpenShare: () => void;
+  onOpenAndroidInstall: () => void;
   onRestart: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
@@ -24,6 +25,7 @@ export const HUD: React.FC<HUDProps> = ({
   onOpenCompanions,
   onOpenLeaderboard,
   onOpenShare,
+  onOpenAndroidInstall,
   onRestart,
   isMuted,
   onToggleMute,
@@ -58,7 +60,16 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
 
         {/* Nav links */}
-        <nav className="hidden md:flex items-center gap-5 text-xs lg:text-sm font-medium text-amber-200/80">
+        <nav className="hidden md:flex items-center gap-4 lg:gap-5 text-xs lg:text-sm font-medium text-amber-200/80">
+          <button
+            onClick={onOpenAndroidInstall}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/60 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/80 transition shadow-sm cursor-pointer text-xs font-bold"
+            title="Tải game về điện thoại Android hoặc tạo file APK"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Tải Android / APK</span>
+          </button>
+
           <button
             onClick={onOpenLeaderboard}
             className="flex items-center gap-1.5 hover:text-amber-300 transition-colors whitespace-nowrap text-amber-300 font-semibold cursor-pointer"
@@ -101,7 +112,17 @@ export const HUD: React.FC<HUDProps> = ({
         </nav>
 
         {/* Action Controls & Sound */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Mobile Android APK button */}
+          <button
+            onClick={onOpenAndroidInstall}
+            title="Tải game về Android / APK"
+            className="md:hidden flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-bold hover:bg-emerald-900/60 transition-colors cursor-pointer"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+            <span>APK</span>
+          </button>
+
           {/* Share button */}
           <button
             onClick={onOpenShare}

@@ -1,0 +1,14 @@
+{
+	"appId": "com.cockientroi.game",
+	"appName": "Cóc Kiện Trời",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": true
+	},
+	"android": {
+		"allowMixedContent": true,
+		"captureInput": true,
+		"backgroundColor": "#064e3b"
+	}
+}

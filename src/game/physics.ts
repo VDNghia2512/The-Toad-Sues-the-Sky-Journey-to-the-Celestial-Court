@@ -155,7 +155,7 @@ export class PhysicsEngine {
                 triggeredRainOrb = true;
               }
             } else if (plat.type === 'cracked') {
-              if (plat.state === 'idle') {
+              if (plat.state === 'idle' || !plat.state) {
                 plat.state = 'breaking';
                 plat.breakTimer = 45;
                 soundManager.playPlatformBreak();
@@ -217,23 +217,90 @@ export class PhysicsEngine {
         }
       }
 
-      // Cracked platform countdown
-      if (plat.state === 'breaking' && plat.breakTimer !== undefined) {
-        plat.breakTimer--;
-        if (plat.breakTimer <= 0) {
-          plat.state = 'broken';
-          for (let i = 0; i < 14; i++) {
+      // Cracked platform breaking & automatic regeneration lifecycle
+      if (plat.type === 'cracked') {
+        if (plat.state === 'breaking' && plat.breakTimer !== undefined) {
+          plat.breakTimer--;
+
+          // Warning fissure crumbling particles while stepping on it
+          if (plat.breakTimer % 9 === 0) {
             particles.push({
               x: plat.x + Math.random() * plat.width,
-              y: plat.y + Math.random() * plat.height,
-              vx: (Math.random() - 0.5) * 4,
-              vy: Math.random() * 3,
-              color: '#92400e',
-              size: 3 + Math.random() * 3,
-              alpha: 0.9,
+              y: plat.y + 2,
+              vx: (Math.random() - 0.5) * 2,
+              vy: Math.random() * 1.5,
+              color: '#d97706',
+              size: 2,
+              alpha: 0.8,
               life: 0,
-              maxLife: 30,
+              maxLife: 15,
             });
+          }
+
+          if (plat.breakTimer <= 0) {
+            plat.state = 'broken';
+            plat.maxRegenTimer = 180; // ~3.0s (180 frames at 60fps) to regenerate
+            plat.regenTimer = plat.maxRegenTimer;
+
+            // Shatter into flying fragments
+            for (let i = 0; i < 16; i++) {
+              particles.push({
+                x: plat.x + Math.random() * plat.width,
+                y: plat.y + Math.random() * plat.height,
+                vx: (Math.random() - 0.5) * 4.5,
+                vy: Math.random() * 3 + 0.5,
+                color: i % 2 === 0 ? '#92400e' : '#b45309',
+                size: 3 + Math.random() * 3,
+                alpha: 0.9,
+                life: 0,
+                maxLife: 32,
+              });
+            }
+          }
+        } else if (plat.state === 'broken' && plat.regenTimer !== undefined) {
+          plat.regenTimer--;
+
+          // Rising magical earth & leaf particles as the platform reassembles
+          if (plat.regenTimer <= 50 && plat.regenTimer % 6 === 0) {
+            particles.push({
+              x: plat.x + Math.random() * plat.width,
+              y: plat.y + 16 + Math.random() * 10,
+              vx: (Math.random() - 0.5) * 1.2,
+              vy: -1.2 - Math.random() * 1.5,
+              color: '#4ade80',
+              size: 2.5,
+              alpha: 0.85,
+              life: 0,
+              maxLife: 20,
+              shape: 'leaf',
+            });
+          }
+
+          // Fully recovered and restored!
+          if (plat.regenTimer <= 0) {
+            plat.state = 'idle';
+            plat.breakTimer = undefined;
+            plat.regenTimer = undefined;
+            plat.maxRegenTimer = undefined;
+
+            soundManager.playPlatformRegen();
+
+            // Joyful reconstruction flash particles
+            for (let i = 0; i < 14; i++) {
+              const angle = (Math.PI * 2 * i) / 14;
+              particles.push({
+                x: plat.x + plat.width / 2,
+                y: plat.y + plat.height / 2,
+                vx: Math.cos(angle) * (1.8 + Math.random() * 2),
+                vy: Math.sin(angle) * (1.2 + Math.random() * 1.5) - 0.8,
+                color: i % 2 === 0 ? '#4ade80' : '#fde047',
+                size: 3 + Math.random() * 2,
+                alpha: 1,
+                life: 0,
+                maxLife: 28,
+                shape: 'sparkle',
+              });
+            }
           }
         }
       }
